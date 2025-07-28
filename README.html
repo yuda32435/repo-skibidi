@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agregar Plantas a tu Huerta</title>
+<style>
+  body { font-family: Arial, sans-serif; background-color: #e9f5e9; padding: 20px; }
+  h1 { text-align: center; color: #2e7d32; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #888; padding: 8px; text-align: center; vertical-align: middle; }
+  th { background-color: #a5d6a7; }
+  button { background-color: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; margin: 2px; }
+  button:hover { background-color: #388e3c; }
+  img { max-width: 100px; border-radius: 8px; }
+  #buscador { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #888; }
+  .modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0; top: 0; width: 100%; height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.5);
+  }
+  .modal-content {
+    background-color: #fff;
+    margin: 5% auto; 
+    padding: 20px; 
+    border: 2px solid #4caf50; 
+    border-radius: 10px;
+    width: 320px;
+    text-align: center;
+  }
+  .modal-content input {
+    width: 100%;
+    margin: 6px 0;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+  .modal-buttons {
+    text-align: center;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Mi Huerta Virtual</h1>
+
+<input type="text" id="buscador" placeholder="Buscar planta por nombre...">
+
+<button onclick="abrirFormulario()">Agregar Planta</button>
+<button onclick="guardarDatos()">Guardar Datos</button>
+<button onclick="cargarDatos()">Cargar Datos</button>
+<button onclick="abririmagmen()">ficha tecnica</button>
+
+
+<table id="tablaPlantas">
+<thead>
+  <tr>
+    <th>Imagen</th>
+    <th>Cultivo</th>
+    <th>Nombre científico</th>
+    <th>Forma de siembra</th>
+    <th>Época de siembra</th>
+    <th>Meses de siembra</th>
+    <th>Días de germinación</th>
+    <th>Días hasta la cosecha</th>
+    <th>Distancia</th>
+    <th>Acciones</th>
+  </tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<!-- Modal para agregar / editar planta -->
+<div id="formularioModal" class="modal">
+  <div class="modal-content">                                                                                                                 
+    <h3 id="modalTitle">Agregar Planta</h3>
+    <input type="text" id="imgInput" placeholder="URL de la imagen" />
+    <input type="text" id="cultivoInput" placeholder="Nombre del cultivo" />
+    <input type="text" id="cientificoInput" placeholder="Nombre científico" />
+    <input type="text" id="siembraInput" placeholder="Forma de siembra" />
+    <input type="text" id="epocaInput" placeholder="Época de siembra" />
+    <input type="text" id="mesesInput" placeholder="Meses de siembra (texto permitido)" />
+    <input type="text" id="germinacionInput" placeholder="Días de germinación (solo números, espacios, , . -)" />
+    <input type="text" id="cosechaInput" placeholder="Días hasta la cosecha (solo números, espacios, , . -)" />
+    <input type="text" id="distanciaInput" placeholder="Distancia (número y texto)" />
+    <div class="modal-buttons">
+      <button onclick="guardarPlanta()">Guardar</button>
+      <button onclick="cerrarFormulario()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para ver imagen ampliada -->
+<div id="imagenModal" class="modal">
+  <div class="modal-content" style="width: auto; max-width: 90%;">
+    <img id="imagenModalImg" src="" alt="Imagen ampliada" style="max-width: 100%; border-radius: 10px;">
+    <div class="modal-buttons">
+      <button onclick="cerrarImagenModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const buscador = document.getElementById('buscador');
+  const modal = document.getElementById('formularioModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const imgInput = document.getElementById('imgInput');
+  const cultivoInput = document.getElementById('cultivoInput');
+  const cientificoInput = document.getElementById('cientificoInput');
+  const siembraInput = document.getElementById('siembraInput');
+  const epocaInput = document.getElementById('epocaInput');
+  const mesesInput = document.getElementById('mesesInput');
+  const germinacionInput = document.getElementById('germinacionInput');
+  const cosechaInput = document.getElementById('cosechaInput');
+  const distanciaInput = document.getElementById('distanciaInput');
+  const tabla = document.querySelector('#tablaPlantas tbody');
+  const imagenModal = document.getElementById('imagenModal');
+  const imagenModalImg = document.getElementById('imagenModalImg');
+  let filaEditando = null;
+
+  buscador.addEventListener('input', function() {
+    const filtro = this.value.toLowerCase();
+    const filas = tabla.querySelectorAll('tr');
+    filas.forEach(fila => {
+      const texto = fila.cells[1].innerText.toLowerCase();
+      fila.style.display = texto.includes(filtro) ? '' : 'none';
+    });
+  });
+
+  function filtrarNoLetras(event) {
+    event.target.value = event.target.value.replace(/[^0-9\s,\.\-]/g, '');
+  }
+  germinacionInput.addEventListener('input', filtrarNoLetras);
+  cosechaInput.addEventListener('input', filtrarNoLetras);
+
+  function abrirFormulario() {
+    filaEditando = null;
+    modalTitle.innerText = 'Agregar Planta';
+    limpiarFormulario();
+    modal.style.display = 'block';
+  }
+
+  function cerrarFormulario() {
+    modal.style.display = 'none';
+  }
+
+  function limpiarFormulario() {
+    imgInput.value = '';
+    cultivoInput.value = '';
+    cientificoInput.value = '';
+    siembraInput.value = '';
+    epocaInput.value = '';
+    mesesInput.value = '';
+    germinacionInput.value = '';
+    cosechaInput.value = '';
+    distanciaInput.value = '';
+  }
+
+  function validarFormulario() {
+    if (!imgInput.value.trim()) { alert('Ingrese URL de la imagen'); return false; }
+    if (!cultivoInput.value.trim()) { alert('Ingrese nombre del cultivo'); return false; }
+    if (!cientificoInput.value.trim()) { alert('Ingrese nombre científico'); return false; }
+    if (!siembraInput.value.trim()) { alert('Ingrese forma de siembra'); return false; }
+    if (!epocaInput.value.trim()) { alert('Ingrese época de siembra'); return false; }
+    if (!mesesInput.value.trim()) { alert('Ingrese meses de siembra'); return false; }
+    if (!germinacionInput.value.trim()) { alert('Ingrese días de germinación'); return false; }
+    if (!cosechaInput.value.trim()) { alert('Ingrese días hasta la cosecha'); return false; }
+    if (!distanciaInput.value.trim()) { alert('Ingrese distancia'); return false; }
+    return true;
+  }
+
+  function guardarPlanta() {
+    if (!validarFormulario()) return;
+
+    const imagen = imgInput.value.trim();
+    const cultivo = cultivoInput.value.trim();
+    const cientifico = cientificoInput.value.trim();
+    const siembra = siembraInput.value.trim();
+    const epoca = epocaInput.value.trim();
+    const meses = mesesInput.value.trim();
+    const germinacion = germinacionInput.value.trim();
+    const cosecha = cosechaInput.value.trim();
+    const distancia = distanciaInput.value.trim();
+
+    if (filaEditando) {
+      filaEditando.cells[0].querySelector('img').src = imagen;
+      filaEditando.cells[0].querySelector('img').alt = cultivo;
+      filaEditando.cells[1].innerText = cultivo;
+      filaEditando.cells[2].innerText = cientifico;
+      filaEditando.cells[3].innerText = siembra;
+      filaEditando.cells[4].innerText = epoca;
+      filaEditando.cells[5].innerText = meses;
+      filaEditando.cells[6].innerText = germinacion;
+      filaEditando.cells[7].innerText = cosecha;
+      filaEditando.cells[8].innerText = distancia;
+    } else {
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td>
+          <img src="${imagen}" alt="${cultivo}"><br>
+          <button onclick="verImagen('${imagen}', '${cultivo}')">Ver Imagen</button>
+        </td>
+        <td>${cultivo}</td>
+        <td>${cientifico}</td>
+        <td>${siembra}</td>
+        <td>${epoca}</td>
+        <td>${meses}</td>
+        <td>${germinacion}</td>
+        <td>${cosecha}</td>
+        <td>${distancia}</td>
+        <td>
+          <button onclick="editarFila(this)">Editar</button>
+          <button onclick="eliminarFila(this)">Eliminar</button>
+        </td>
+      `;
+      tabla.appendChild(fila);
+    }
+    cerrarFormulario();
+    limpiarFormulario();
+  }
+
+  function editarFila(boton) {
+    filaEditando = boton.parentElement.parentElement;
+    modalTitle.innerText = 'Editar Planta';
+    imgInput.value = filaEditando.cells[0].querySelector('img').src;
+    cultivoInput.value = filaEditando.cells[1].innerText;
+    cientificoInput.value = filaEditando.cells[2].innerText;
+    siembraInput.value = filaEditando.cells[3].innerText;
+    epocaInput.value = filaEditando.cells[4].innerText;
+    mesesInput.value = filaEditando.cells[5].innerText;
+    germinacionInput.value = filaEditando.cells[6].innerText;
+    cosechaInput.value = filaEditando.cells[7].innerText;
+    distanciaInput.value = filaEditando.cells[8].innerText;
+    modal.style.display = 'block';
+  }
+
+  function eliminarFila(boton) {
+    if(confirm('¿Estás seguro de eliminar esta planta?')) {
+      boton.parentElement.parentElement.remove();
+    }
+  }
+
+  function guardarDatos() {
+    localStorage.setItem('plantasHuerta', tabla.innerHTML);
+    alert('Datos guardados correctamente.');
+  }
+
+  function cargarDatos() {
+    const datos = localStorage.getItem('plantasHuerta');
+    if(datos) {
+      tabla.innerHTML = datos;
+    }
+  }
+
+  window.onload = cargarDatos;
+
+  window.onclick = function(event) {
+    if (event.target == modal) cerrarFormulario();
+    if (event.target == imagenModal) cerrarImagenModal();
+  }
+
+  function verImagen(url, alt) {
+    imagenModalImg.src = url;
+    imagenModalImg.alt = alt;
+    imagenModal.style.display = 'block';
+  }
+
+  function cerrarImagenModal() {
+    imagenModal.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
